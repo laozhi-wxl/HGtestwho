@@ -1,129 +1,211 @@
 export const meta = {
   id: "source.adultembed",
   name: "AdultEmbed 成人视频库",
-  version: "1.0.0",
+  version: "1.0.1",
   protocol: 1,
-  description: "通过 AdultEmbed 公共 API 搜索成人视频、演员、片商与标签；播放使用来源方网页播放器。",
+  description: "通过 AdultEmbed 官方 API 搜索成人视频；播放交由来源方网页播放器。",
   author: "HGtestwho",
   homepage: "https://adultembed.com/api/docs/",
   updateUrl: "https://raw.githubusercontent.com/laozhi-wxl/HGtestwho/main/plugins/adultembed.source.js",
   mature: true,
   settings: [
-    { key: "orientation", type: "select", label: "内容方向", default: "all", options: [
-      { value: "all", label: "全部" }, { value: "straight", label: "异性" },
-      { value: "gay", label: "男同性" }, { value: "trans", label: "跨性别" },
-      { value: "bi", label: "双性" }
-    ]},
-    { key: "pageSize", type: "select", label: "每页数量", default: "24", options: [
-      { value: "12", label: "12 条" }, { value: "24", label: "24 条" }, { value: "48", label: "48 条" }
-    ]}
+    {
+      key: "orientation",
+      type: "select",
+      label: "内容方向",
+      default: "all",
+      options: [
+        { value: "all", label: "全部" },
+        { value: "straight", label: "异性" },
+        { value: "gay", label: "男同性" },
+        { value: "trans", label: "跨性别" },
+        { value: "bi", label: "双性" }
+      ]
+    }
   ]
 };
 
 const API = "https://adultembed.com/api/v1";
 const PLAYER = "https://adultembed.com/player/embed/";
 
-function fail(hg, code, message) {
+function raise(hg, code, message) {
   throw new hg.PluginError(code, message);
 }
-function listFrom(data) {
-  if (Array.isArray(data?.results)) return data.results;
-  if (Array.isArray(data?.data?.results)) return data.data.results;
-  if (Array.isArray(data?.videos)) return data.videos;
-  return [];
+
+function rowsOf(data) {
+  return Array.isArray(data?.results) ? data.results : [];
 }
-function pageNumber(cursor) {
-  const n = Number(cursor || 1);
-  return Number.isInteger(n) && n > 0 && n < 100000 ? n : 1;
-}
+
 function mapVideo(v) {
-  const id = String(v.id ?? v.video_id ?? "");
-  if (!id) return null;
-  const performers = Array.isArray(v.performers) ? v.performers.map(x => typeof x === "string" ? x : x?.name).filter(Boolean) : [];
-  const tags = Array.isArray(v.tags) ? v.tags.map(x => typeof x === "string" ? x : x?.name).filter(Boolean) : [];
+  const rawId = v?.id;
+  if (rawId === undefined || rawId === null) return null;
+
+  const performers = Array.isArray(v.performers)
+    ? v.performers.map(x => typeof x === "string" ? x : x?.name).filter(Boolean)
+    : [];
+  const tags = Array.isArray(v.tags)
+    ? v.tags.map(x => typeof x === "string" ? x : x?.name).filter(Boolean)
+    : [];
   const studio = typeof v.studio === "string" ? v.studio : v.studio?.name;
+  const duration = Number(v.duration_seconds);
+
   return {
-    id: "ae:" + id,
-    title: String(v.title || "Untitled"),
+    id: "ae:" + String(rawId),
+    title: String(v.title || "未命名视频"),
     type: "movie",
-    cover: v.thumbnail || v.thumb || undefined,
-    backdrop: v.tpdb_background_url || undefined,
-    description: [v.description, performers.length ? "演员：" + performers.join("、") : "", studio ? "片商：" + studio : ""].filter(Boolean).join("\n"),
-    tags: [...new Set([...tags, ...(studio ? [studio] : [])])].slice(0, 20),
-    durationSec: Number(v.duration_seconds) > 0 ? Number(v.duration_seconds) : undefined,
+    cover: typeof v.thumbnail === "string" ? v.thumbnail : undefined,
+    backdrop: typeof v.tpdb_background_url === "string" ? v.tpdb_background_url : undefined,
+    description: [
+      v.description,
+      performers.length ? "演员：" + performers.join("、") : "",
+      studio ? "片商：" + studio : ""
+    ].filter(Boolean).join("\n"),
+    tags: [...new Set([...tags, ...(studio ? [studio] : [])])].slice(0, 30),
+    durationSec: Number.isFinite(duration) && duration > 0 ? duration : undefined,
     publishedAt: v.published_at ? Date.parse(v.published_at) : undefined,
     stats: Number(v.view_count) > 0 ? { plays: Number(v.view_count) } : undefined
   };
 }
-async function request(hg, path, query) {
-  const res = await hg.http.fetch({
-    url: API + path, query, responseType: "json", timeoutMs: 20000,
-    cache: { ttlSec: 180, staleIfErrorSec: 1800 }, retry: 1
+
+async function getJson(hg, path, query) {
+  const response = await hg.http.fetch({
+    url: API + path,
+    query,
+    responseType: "json",
+    timeoutMs: 20000,
+    cache: { ttlSec: 120, staleIfErrorSec: 600 },
+    retry: 1
   });
-  if (!res.ok) fail(hg, res.status === 404 ? "NOT_FOUND" : "UPSTREAM_ERROR", "AdultEmbed 请求失败（HTTP " + res.status + "）");
-  return res.data;
+  if (!response.ok) {
+    raise(
+      hg,
+      response.status === 404 ? "NOT_FOUND" : "UPSTREAM_ERROR",
+      "AdultEmbed 请求失败（HTTP " + response.status + "）"
+    );
+  }
+  return response.data;
 }
-function pageResult(data, page, rawItems) {
-  const items = rawItems.map(mapVideo).filter(Boolean);
-  const hasMore = Boolean(data?.next || data?.has_more || (typeof data?.count === "number" && page * rawItems.length < data.count));
-  return { items, next: hasMore ? String(page + 1) : null, total: Number(data?.count) || undefined };
+
+function pageOf(data, page, perPage) {
+  const sourceRows = rowsOf(data);
+  const items = sourceRows.map(mapVideo).filter(Boolean);
+  const total = Number(data?.count);
+  const pages = Number(data?.pages);
+  const hasMore = Number.isFinite(pages) && pages > 0
+    ? page < pages
+    : Number.isFinite(total) && total >= 0
+      ? page * perPage < total
+      : Boolean(data?.next);
+  return {
+    items,
+    next: hasMore ? String(page + 1) : null,
+    total: Number.isFinite(total) && total >= 0 ? total : undefined
+  };
+}
+
+function getPage(cursor) {
+  const value = Number(cursor || 1);
+  return Number.isInteger(value) && value > 0 ? value : 1;
+}
+
+function getRawId(id) {
+  return String(id || "").replace(/^ae:/, "");
+}
+
+async function getVideo(hg, id) {
+  const data = await getJson(hg, "/videos/" + encodeURIComponent(id), {});
+  return data?.video || data?.data?.video || data?.data || data;
+}
+
+function playerUrl(id) {
+  return PLAYER + encodeURIComponent(String(id)) + "/";
 }
 
 export default function (hg) {
   const orientation = () => hg.settings.get("orientation") || "all";
-  const pageSize = () => Number(hg.settings.get("pageSize") || 24);
-  async function searchPage(query, cursor) {
-    const page = pageNumber(cursor);
-    const data = await request(hg, "/search", {
-      query: query || undefined, orientation: orientation(), sort: query ? "newest" : "newest",
-      page, per_page: pageSize(), quality: "complete"
+  const perPage = 24;
+
+  async function listVideos(query, cursor) {
+    const page = getPage(cursor);
+    const data = await getJson(hg, "/search", {
+      query: query || undefined,
+      orientation: orientation(),
+      sort: "newest",
+      quality: "complete",
+      page,
+      per_page: perPage
     });
-    const rows = listFrom(data);
-    return pageResult(data, page, rows);
+    return pageOf(data, page, perPage);
   }
-  async function videoById(id) {
-    const data = await request(hg, "/videos/" + encodeURIComponent(String(id)), {});
-    return data?.video || data?.data?.video || data?.data || data;
-  }
+
   return {
     home: {
       async getSections() {
-        const data = await request(hg, "/videos/trending", { period: "week", orientation: orientation(), per_page: pageSize() });
-        const rows = listFrom(data);
-        return { items: [{ id: "trending", title: "本周热门", layout: "grid", items: rows.map(mapVideo).filter(Boolean) }], next: null };
+        const data = await getJson(hg, "/videos/trending", {
+          period: "week",
+          orientation: orientation(),
+          quality: "complete",
+          per_page: perPage
+        });
+        return {
+          items: [{
+            id: "weekly-trending",
+            title: "本周热门",
+            layout: "grid",
+            items: rowsOf(data).map(mapVideo).filter(Boolean)
+          }],
+          next: null
+        };
       }
     },
+
     search: {
       async search({ query, cursor }) {
-        return await searchPage(query, cursor);
+        return await listVideos(query, cursor);
       },
       async trending() {
-        const data = await request(hg, "/videos/trending", { period: "week", orientation: orientation(), per_page: 12 });
-        return listFrom(data).slice(0, 12).map(v => String(v.title || "")).filter(Boolean);
+        const data = await getJson(hg, "/videos/trending", {
+          period: "week",
+          orientation: orientation(),
+          quality: "complete",
+          per_page: 12
+        });
+        return rowsOf(data).map(v => String(v.title || "")).filter(Boolean);
       }
     },
+
     media: {
       async getDetail({ id }) {
-        const rawId = String(id).replace(/^ae:/, "");
-        const v = await videoById(rawId);
-        const item = mapVideo({ ...v, id: v.id ?? rawId });
-        if (!item) fail(hg, "UPSTREAM_CHANGED", "AdultEmbed 返回了无法识别的视频数据");
-        const embed = v?.embed?.url || v?.embed_url || (v?.id ? PLAYER + encodeURIComponent(String(v.id)) + "/" : "");
-        const target = embed || v?.video_url;
-        if (!target || !/^https:\/\//i.test(target)) fail(hg, "CONTENT_LOCKED", "该视频当前没有可用的网页播放器地址");
+        const rawId = getRawId(id);
+        const video = await getVideo(hg, rawId);
+        const item = mapVideo({ ...video, id: video?.id ?? rawId });
+        if (!item) raise(hg, "UPSTREAM_CHANGED", "AdultEmbed 详情数据格式无法识别");
+
         return {
           ...item,
-          playlists: [{ id: "main", label: "来源播放器", episodes: [{ id: "main", index: 1, label: "正片" }] }],
-          related: []
+          playlists: [{
+            id: "main",
+            label: "来源播放器",
+            episodes: [{ id: "main", index: 1, label: "正片" }]
+          }]
         };
       },
+
       async resolvePlayback({ mediaId }) {
-        const rawId = String(mediaId).replace(/^ae:/, "");
-        const v = await videoById(rawId);
-        const embed = v?.embed?.url || v?.embed_url || (v?.id ? PLAYER + encodeURIComponent(String(v.id)) + "/" : "");
-        const target = embed || v?.video_url;
-        if (!target || !/^https:\/\//i.test(target)) fail(hg, "CONTENT_LOCKED", "该视频当前没有可用的网页播放器地址");
-        return { streams: [{ kind: "external", url: target, external: { app: "浏览器" } }] };
+        const rawId = getRawId(mediaId);
+        const video = await getVideo(hg, rawId);
+        if (!video || video.id === undefined) {
+          raise(hg, "NOT_FOUND", "AdultEmbed 中已找不到该视频");
+        }
+
+        return {
+          streams: [{
+            kind: "external",
+            url: playerUrl(video.id),
+            external: { app: "浏览器" },
+            label: "来源网页播放器"
+          }]
+        };
       }
     }
   };
