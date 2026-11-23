@@ -1,4 +1,11 @@
 {
   "name": "HGtestwho 中日韩及东南亚真人资源插件集",
-  "plugins": []
+  "plugins": [
+    {
+      "id": "hghub.x.publicvideo",
+      "name": "X 公开视频",
+      "version": "1.0.0",
+      "url": "../plugins/x-publicvideo.js"
+    }
+  ]
 }
