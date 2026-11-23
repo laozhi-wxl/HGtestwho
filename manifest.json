@@ -5,7 +5,7 @@
     {
       "id": "hghub.x.publicvideo",
       "name": "X 公开视频",
-      "version": "2.0.2",
+      "version": "2.0.3",
       "description": "关键词搜索 X 公开帖子，只收录含真实 MP4/HLS 视频流的帖子",
       "url": "x-publicvideo.js"
     }
