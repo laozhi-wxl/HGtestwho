@@ -57,7 +57,7 @@ function cardFromStatus(status) {
   return {
     id: String(status.id),
     title: String(status.text || '').trim().slice(0, 120) || ('@' + (author.screen_name || 'X') + ' 视频'),
-    type: 'video',
+    type: 'short',
     cover,
     description: String(status.text || ''),
     tags: ['X', '公开视频', '@' + (author.screen_name || 'unknown')],
@@ -89,7 +89,6 @@ export default hg => ({
         return {
           items: [],
           next: null,
-          message: '输入 X 用户名（例如 @username）或公开帖子链接。全站关键词搜索目前受 X 上游 API 限制。',
         };
       }
 
