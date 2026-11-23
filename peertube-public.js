@@ -1,7 +1,7 @@
 export const meta = {
   id: 'hghub.peertube.public',
   name: 'PeerTube 公共视频',
-  version: '1.0.0',
+  version: '1.0.1',
   protocol: 1,
   mature: true,
   timeouts: { read: 30, playback: 60 },
