@@ -1,7 +1,7 @@
 export const meta = {
   id: 'hghub.x.publicvideo',
   name: 'X 公开视频',
-  version: '2.0.0',
+  version: '2.0.1',
   protocol: 1,
   mature: true,
   description: '关键词搜索 X 公开帖子，只收录含真实 MP4/HLS 视频流的帖子，并使用 HGhub 原生播放器',
