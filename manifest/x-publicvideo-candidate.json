@@ -1,0 +1,11 @@
+{
+  "name": "HGhub X 公开视频插件候选版（未完成真实联调）",
+  "plugins": [
+    {
+      "id": "hghub.x.publicvideo",
+      "name": "X 公开视频 1.2.0 候选版",
+      "version": "1.2.0",
+      "url": "../plugins/x-publicvideo-1.2.0-candidate.js"
+    }
+  ]
+}
