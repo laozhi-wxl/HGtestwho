@@ -20,9 +20,9 @@ function postIdFromUrl(value) {
 
 function handleFromQuery(value) {
   const q = String(value || '').trim();
-  const url = q.match(/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})(?:\/|$)/i);
+  const url = q.match(/(?:x|twitter)\\.com\\/([A-Za-z0-9_]{1,15})(?:\\/|$)/i);
   if (url && !['home','search','i'].includes(url[1].toLowerCase())) return url[1];
-  const m = q.match(/^@?([A-Za-z0-9_]{1,15})$/);
+  const m = q.match(/^@([A-Za-z0-9_]{1,15})$/);
   return m ? m[1] : null;
 }
 
@@ -84,19 +84,16 @@ export default hg => ({
         return { items: card ? [card] : [], next: null };
       }
 
+      const count = Math.min(Math.max(Number(limit) || 20, 1), 50);
       const handle = handleFromQuery(q);
-      if (!handle) {
-        return {
-          items: [],
-          next: null,
-        };
-      }
-
-      const params = 'count=' + Math.min(Math.max(Number(limit) || 20, 1), 50) +
+      const params = 'count=' + count +
         (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
-      const data = await request(hg, API + '/profile/' + encodeURIComponent(handle) + '/media?' + params, ctx);
+      const endpoint = handle
+        ? '/profile/' + encodeURIComponent(handle) + '/media?' + params
+        : '/search?q=' + encodeURIComponent(q) + '&feed=media&' + params;
+      const data = await request(hg, API + endpoint, ctx);
       const rows = Array.isArray(data.results) ? data.results : [];
-      const items = rows.map(cardFromStatus).filter(Boolean);
+      const items = rows.map(row => cardFromStatus(row.status || row)).filter(Boolean);
       return { items, next: data.cursor && data.cursor.bottom ? String(data.cursor.bottom) : null };
     },
   },
