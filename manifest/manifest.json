@@ -1,11 +1,4 @@
 {
-  "name": "HGtestwho 成人资源插件集",
-  "plugins": [
-    {
-      "id": "source.adultembed",
-      "name": "AdultEmbed 成人视频库",
-      "version": "1.0.1",
-      "url": "../plugins/adultembed.source.js"
-    }
-  ]
+  "name": "HGtestwho 东南亚资源插件集",
+  "plugins": []
 }
