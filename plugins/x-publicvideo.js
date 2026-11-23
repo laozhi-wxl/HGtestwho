@@ -1,7 +1,7 @@
 export const meta = {
   id: 'hghub.x.publicvideo',
   name: 'X 公开视频',
-  version: '1.1.0',
+  version: '1.1.1',
   protocol: 1,
   mature: true,
   description: '通过 FxTwitter 公共 API 浏览公开账号视频，并在 HGhub 原生播放器播放 MP4/HLS',
