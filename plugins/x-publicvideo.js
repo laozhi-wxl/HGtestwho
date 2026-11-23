@@ -1,9 +1,10 @@
 export const meta = {
   id: 'hghub.x.publicvideo',
   name: 'X 公开视频',
-  version: '2.0.2',
+  version: '2.0.3',
   protocol: 1,
   mature: true,
+  timeouts: { read: 30, playback: 60 },
   description: '关键词搜索 X 公开帖子，只收录含真实 MP4/HLS 视频流的帖子，并使用 HGhub 原生播放器',
 };
 
@@ -26,6 +27,7 @@ async function fetchText(hg, url, ctx, options = {}) {
     headers: options.headers || { Accept: 'application/json' },
     body: options.body,
     responseType: 'text',
+    timeoutMs: options.timeoutMs || 12000,
     signal: ctx.signal,
   });
   if (!r.ok) fail(hg, 'UPSTREAM_ERROR', '上游请求失败（HTTP ' + r.status + '）');
@@ -116,6 +118,7 @@ async function searchX(hg, query, ctx) {
     },
   };
   const body = await fetchText(hg, SEARCH_API, ctx, {
+    timeoutMs: 22000,
     method: 'POST',
     headers: {
       Accept: 'application/json, text/event-stream',
@@ -128,7 +131,7 @@ async function searchX(hg, query, ctx) {
 
 async function getTweet(hg, id, ctx) {
   const url = TWEET_API + '?id=' + encodeURIComponent(id) + '&token=a&lang=en';
-  const body = await fetchText(hg, url, ctx);
+  const body = await fetchText(hg, url, ctx, { timeoutMs: 10000 });
   let raw;
   try { raw = JSON.parse(body); } catch (_) { fail(hg, 'UPSTREAM_ERROR', 'X 公开视频数据不是有效 JSON'); }
   if (!raw || !raw.id_str) fail(hg, 'NOT_FOUND', '帖子不存在、已删除或不可公开访问');
@@ -214,18 +217,22 @@ export default hg => ({
         }
       }
       const offset = Math.max(0, Number(cursor) || 0);
-      const selected = hits.slice(offset, offset + count);
-      const items = [];
-      for (const hit of selected) {
+      // Keep each search call within the host's 30s read budget.
+      // Hydrate a small batch concurrently instead of serially fetching up to 30 posts.
+      const batchSize = Math.min(count, 6);
+      const selected = hits.slice(offset, offset + batchSize);
+      const hydrated = await Promise.all(selected.map(async hit => {
         try {
           const raw = await getTweet(hg, hit.id, ctx);
-          const card = cardFromTweet(raw);
-          if (card) items.push(card);
+          return cardFromTweet(raw);
         } catch (error) {
           if (ctx.signal && ctx.signal.aborted) throw error;
+          return null;
         }
-      }
-      const next = offset + count < hits.length ? String(offset + count) : null;
+      }));
+      const items = hydrated.filter(Boolean);
+      const nextOffset = offset + selected.length;
+      const next = nextOffset < hits.length ? String(nextOffset) : null;
       return { items, next };
     },
   },
