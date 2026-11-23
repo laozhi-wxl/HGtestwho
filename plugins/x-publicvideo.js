@@ -64,8 +64,8 @@ function unwrapMcp(payload) {
 function extractStatus(value) {
   const text = String(value || '');
   const patterns = [
-    /(?:https?:\\/\\/)?(?:www\\.)?(?:x|twitter)\\.com\\/(?:i\\/(?:web\\/)?)?status(?:es)?\\/(\\d{2,25})/i,
-    /(?:https?:\\/\\/)?(?:www\\.)?(?:mobile\\.)?(?:x|twitter)\\.com\\/[A-Za-z0-9_]{1,15}\\/status(?:es)?\\/(\\d{2,25})/i
+    /(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com\/(?:i\/(?:web\/)?)?status(?:es)?\/(\d{2,25})/i,
+    /(?:https?:\/\/)?(?:www\.)?(?:mobile\.)?(?:x|twitter)\.com\/[A-Za-z0-9_]{1,15}\/status(?:es)?\/(\d{2,25})/i
   ];
   for (const pattern of patterns) {
     const match = text.match(pattern);
@@ -94,7 +94,7 @@ function extractHits(data) {
     seen.add(id);
     out.push({
       id,
-      username: (String(row.url || '').match(/(?:x|twitter)\\.com\\/([A-Za-z0-9_]{1,15})\\/status/i) || [])[1] || '',
+      username: (String(row.url || '').match(/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status/i) || [])[1] || '',
       title: String(row.title || ''),
       snippet: excerpts,
     });
