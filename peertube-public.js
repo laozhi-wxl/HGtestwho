@@ -3,7 +3,7 @@ export const meta = {
   name: 'PeerTube 公共视频',
   version: '1.0.0',
   protocol: 1,
-  mature: false,
+  mature: true,
   timeouts: { read: 30, playback: 60 },
   description: '通过 SepiaSearch 搜索 PeerTube 联邦公开视频，播放源由视频所属实例提供',
 };
@@ -120,7 +120,7 @@ export default hg => ({
         start: String(start),
         count: String(count),
         sort: '-match',
-        nsfw: 'false',
+        nsfw: 'true',
       });
       const data = await requestJson(hg, SEARCH_API + '?' + params.toString(), ctx, 20000);
       const rows = Array.isArray(data.data) ? data.data : [];
