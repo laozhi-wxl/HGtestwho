@@ -1,7 +1,7 @@
 export const meta = {
   id: 'hghub.x.publicvideo',
   name: 'X 公开视频',
-  version: '2.0.3',
+  version: '2.0.4',
   protocol: 1,
   mature: true,
   timeouts: { read: 30, playback: 60 },
@@ -9,6 +9,7 @@ export const meta = {
 };
 
 const SEARCH_API = 'https://mcp.parallel.ai/mcp';
+const MCP_PROTOCOL = '2026-07-28';
 const TWEET_API = 'https://cdn.syndication.twimg.com/tweet-result';
 
 function fail(hg, code, message) {
@@ -123,8 +124,21 @@ async function searchX(hg, query, ctx) {
     headers: {
       Accept: 'application/json, text/event-stream',
       'Content-Type': 'application/json',
+      'MCP-Protocol-Version': MCP_PROTOCOL,
+      'Mcp-Method': 'tools/call',
+      'Mcp-Name': 'web_search',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      params: {
+        ...payload.params,
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': MCP_PROTOCOL,
+          'io.modelcontextprotocol/clientInfo': { name: 'HGhub-X-PublicVideo', version: meta.version },
+          'io.modelcontextprotocol/clientCapabilities': {},
+        },
+      },
+    }),
   });
   return extractHits(unwrapMcp(parseJsonOrSse(body)));
 }
