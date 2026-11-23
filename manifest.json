@@ -1,0 +1,13 @@
+{
+  "name": "HGtestwho 中日韩及东南亚真人资源插件集",
+  "description": "HGhub 插件订阅列表",
+  "plugins": [
+    {
+      "id": "hghub.x.publicvideo",
+      "name": "X 公开视频",
+      "version": "2.0.2",
+      "description": "关键词搜索 X 公开帖子，只收录含真实 MP4/HLS 视频流的帖子",
+      "url": "x-publicvideo.js"
+    }
+  ]
+}
