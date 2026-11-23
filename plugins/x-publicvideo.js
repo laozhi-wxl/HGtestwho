@@ -150,7 +150,7 @@ export default hg => ({
           label: (Number(f.height) ? Number(f.height) + 'p' : container.toUpperCase()) + (f.codec ? ' · ' + f.codec : ''),
           height: Number(f.height) || undefined,
           bitrate: Number(f.bitrate) || undefined,
-          codec: f.codec || undefined,
+          codec: ['h264','hevc','av1'].includes(String(f.codec || '').toLowerCase()) ? String(f.codec).toLowerCase() : undefined,
         };
         if (!streams.some(s => s.url === stream.url)) streams.push(stream);
       }
