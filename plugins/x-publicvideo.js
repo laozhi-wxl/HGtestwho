@@ -15,7 +15,7 @@ function fail(hg, code, message) {
 }
 
 function postIdFromUrl(value) {
-  const m = String(value || '').match(/(?:x|twitter)\\.com\\/[^\\s/]+\\/status(?:es)?\\/(\\d{2,25})/i);
+  const m = String(value || '').match(/(?:x|twitter)\.com\/[^\s/]+\/status(?:es)?\/(\d{2,25})/i);
   return m ? m[1] : null;
 }
 
@@ -36,7 +36,7 @@ function parseJsonOrSse(body) {
   const raw = String(body || '').trim();
   if (!raw) throw new Error('empty response');
   if (raw[0] === '{') return JSON.parse(raw);
-  for (const line of raw.split(/\\r?\\n/)) {
+  for (const line of raw.split(/\r?\n/)) {
     if (!line.startsWith('data:')) continue;
     try {
       const item = JSON.parse(line.slice(5).trim());
@@ -55,7 +55,7 @@ function unwrapMcp(payload) {
   }
   let structured = result.structuredContent;
   if (!structured) {
-    const text = (result.content || []).map(x => x.text || '').join('\\n');
+    const text = (result.content || []).map(x => x.text || '').join('\n');
     try { structured = JSON.parse(text); } catch (_) { structured = {}; }
   }
   return structured || {};
@@ -67,7 +67,7 @@ function extractHits(data) {
   const seen = new Set();
   for (const row of rows) {
     const url = String(row && row.url || '');
-    const m = url.match(/(?:x|twitter)\\.com\\/([A-Za-z0-9_]{1,15})\\/status(?:es)?\\/(\\d{2,25})/i);
+    const m = url.match(/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/(\d{2,25})/i);
     if (!m || seen.has(m[2])) continue;
     seen.add(m[2]);
     out.push({ id: m[2], username: m[1], title: String(row.title || ''), snippet: (row.excerpts || []).join(' ') });
@@ -112,7 +112,7 @@ function realVideos(raw) {
   const video = raw.video;
   if (!video || !Array.isArray(video.variants)) return [];
   const streams = video.variants.filter(v =>
-    v && typeof v.url === 'string' && /^https:\\/\\//i.test(v.url) &&
+    v && typeof v.url === 'string' && /^https:\/\//i.test(v.url) &&
     (v.content_type === 'video/mp4' || v.content_type === 'application/x-mpegURL' ||
      v.content_type === 'application/vnd.apple.mpegurl')
   );
@@ -150,7 +150,7 @@ function cardFromTweet(raw) {
 function streamsFor(video, maxHeight) {
   const max = Number(maxHeight) || 0;
   const usable = video.variants.filter(v => {
-    if (!v || typeof v.url !== 'string' || !/^https:\\/\\//i.test(v.url)) return false;
+    if (!v || typeof v.url !== 'string' || !/^https:\/\//i.test(v.url)) return false;
     return v.content_type === 'video/mp4' ||
       v.content_type === 'application/x-mpegURL' ||
       v.content_type === 'application/vnd.apple.mpegurl';
@@ -229,7 +229,7 @@ export default hg => ({
     async resolvePlayback({ mediaId, episodeId, maxHeight }, ctx) {
       const raw = await getTweet(hg, String(mediaId), ctx);
       const videos = realVideos(raw);
-      const match = String(episodeId || '').match(/^video-(\\d+)$/);
+      const match = String(episodeId || '').match(/^video-(\d+)$/);
       const index = match ? Number(match[1]) : 0;
       const entry = videos[index];
       if (!entry) fail(hg, 'NOT_FOUND', '视频分集不存在或已不可用');
