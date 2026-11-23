@@ -12,7 +12,7 @@
     {
       "id": "hghub.peertube.public",
       "name": "PeerTube 公共视频",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "description": "通过 SepiaSearch 搜索 PeerTube 联邦公开视频",
       "url": "peertube-public.js"
     }
