@@ -14,13 +14,13 @@ function fail(hg, code, message) {
 }
 
 function postIdFromUrl(value) {
-  const m = String(value || '').match(/(?:x|twitter)\\.com\\/[^\\s/]+\\/status\\/(\\d{2,20})/i);
+  const m = String(value || '').match(/(?:x|twitter)\.com\/[^\s/]+\/status\/(\d{2,20})/i);
   return m ? m[1] : null;
 }
 
 function handleFromQuery(value) {
   const q = String(value || '').trim();
-  const url = q.match(/(?:x|twitter)\\.com\\/([A-Za-z0-9_]{1,15})(?:\\/|$)/i);
+  const url = q.match(/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})(?:\/|$)/i);
   if (url && !['home','search','i'].includes(url[1].toLowerCase())) return url[1];
   const m = q.match(/^@?([A-Za-z0-9_]{1,15})$/);
   return m ? m[1] : null;
@@ -127,13 +127,13 @@ export default hg => ({
     async resolvePlayback({ mediaId, episodeId, maxHeight }, ctx) {
       const status = await getStatus(hg, mediaId, ctx);
       const videos = videoList(status);
-      const match = String(episodeId || '').match(/^video-(\\d+)$/);
+      const match = String(episodeId || '').match(/^video-(\d+)$/);
       const index = match ? Number(match[1]) : 0;
       const video = videos[index];
       if (!video) fail(hg, 'NOT_FOUND', '视频分集不存在或已不可用');
 
       const formats = Array.isArray(video.formats) ? video.formats.slice() : [];
-      const usable = formats.filter(f => f && typeof f.url === 'string' && /^https:\\/\\//i.test(f.url));
+      const usable = formats.filter(f => f && typeof f.url === 'string' && /^https:\/\//i.test(f.url));
       usable.sort((a, b) => {
         const ah = Number(a.height) || 0, bh = Number(b.height) || 0;
         const max = Number(maxHeight) || 0;
