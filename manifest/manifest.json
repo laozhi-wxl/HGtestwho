@@ -4,8 +4,8 @@
     {
       "id": "hghub.x.publicvideo",
       "name": "X 公开视频",
-      "version": "2.0.0",
-      "url": "../plugins/x-publicvideo.js"
+      "version": "2.0.1",
+      "url": "https://raw.githubusercontent.com/laozhi-wxl/HGtestwho/main/plugins/x-publicvideo.js"
     }
   ]
 }
