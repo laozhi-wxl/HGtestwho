@@ -59,7 +59,7 @@ function card(video) {
   const thumbnail = video.thumbnailUrl || video.thumbnailPath || video.thumbnailPathUrl;
   const author = video.channel || video.account || {};
   return {
-    id: videoId(video) + '@' + (origin || '').replace(/^https?:\\/\\//i, ''),
+    id: videoId(video) + '@' + (origin ? origin.split('://')[1] : ''),
     title: String(video.name || 'PeerTube 视频'),
     type: 'video',
     cover: thumbnail ? absoluteUrl(origin || 'https://sepiasearch.org', thumbnail) : undefined,
@@ -167,7 +167,7 @@ export default hg => ({
 
     async resolvePlayback({ mediaId }, ctx) {
       const value = String(mediaId || '');
-      const match = value.match(/^([a-f0-9-]{16,})@(.+)$/i);
+      const match = value.match(/^([^@]+)@([^/]+)$/);
       if (!match) fail(hg, 'INVALID_ID', '视频标识无效');
       const uuid = match[1];
       const origin = 'https://' + match[2];
