@@ -1,12 +1,4 @@
 {
-  "name": "HGtestwho 中日韩及东南亚资源插件集",
-  "plugins": [
-    {
-      "id": "hentaisea.source",
-      "name": "HentaiSea",
-      "version": "1.0.1",
-      "description": "日本动画成人内容目录；支持公开页面搜索、详情及 MP4/HLS 播放解析。需要在 HGhub 设置中开启成人内容。",
-      "url": "../plugins/hentaisea.js"
-    }
-  ]
+  "name": "HGtestwho 中日韩及东南亚真人资源插件集",
+  "plugins": []
 }
