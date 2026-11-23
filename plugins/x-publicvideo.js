@@ -20,7 +20,7 @@ function postIdFromUrl(value) {
 
 function handleFromQuery(value) {
   const q = String(value || '').trim();
-  const url = q.match(/(?:x|twitter)\\.com\\/([A-Za-z0-9_]{1,15})(?:\\/|$)/i);
+  const url = q.match(/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})(?:\/|$)/i);
   if (url && !['home','search','i'].includes(url[1].toLowerCase())) return url[1];
   const m = q.match(/^@([A-Za-z0-9_]{1,15})$/);
   return m ? m[1] : null;
