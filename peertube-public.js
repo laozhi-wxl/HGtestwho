@@ -38,13 +38,22 @@ function absoluteUrl(origin, value) {
 }
 
 function originFromVideo(video) {
+  const channel = video && video.channel || {};
+  const account = video && video.account || {};
   const candidates = [
     video && video.url,
-    video && video.channel && video.channel.url,
-    video && video.account && video.account.url,
+    video && video.videoUrl,
+    channel.url,
+    account.url,
+    channel.host,
+    account.host,
+    video && video.host,
   ];
   for (const value of candidates) {
-    const m = String(value || '').match(/^https?:\/\/[^/]+/i);
+    const raw = String(value || '').trim();
+    if (!raw) continue;
+    const full = /^https?:\/\//i.test(raw) ? raw : 'https://' + raw;
+    const m = full.match(/^https?:\/\/[^/]+/i);
     if (m) return m[0];
   }
   return null;
@@ -95,12 +104,12 @@ function playbackStreams(detail, origin) {
   };
 
   for (const file of (detail.files || [])) {
-    const url = file.fileUrl || file.fileUrl;
+    const url = file.fileUrl || file.fileDownloadUrl || file.url;
     if (url) add(url, 'progressive', (file.resolution && file.resolution.label) || 'MP4', file.resolution && file.resolution.id, file.size);
   }
 
   for (const playlist of (detail.streamingPlaylists || [])) {
-    if (playlist.playlistUrl) add(playlist.playlistUrl, 'hls', 'HLS');
+    if (playlist.playlistUrl || playlist.fileUrl) add(playlist.playlistUrl || playlist.fileUrl, 'hls', 'HLS');
     for (const file of (playlist.files || [])) {
       if (file.fileUrl) add(file.fileUrl, 'hls', (file.resolution && file.resolution.label) || 'HLS', file.resolution && file.resolution.id, file.size);
     }
