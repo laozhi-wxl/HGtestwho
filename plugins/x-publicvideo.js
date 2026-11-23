@@ -1,7 +1,7 @@
 export const meta = {
   id: 'hghub.x.publicvideo',
   name: 'X 公开视频',
-  version: '2.0.1',
+  version: '2.0.2',
   protocol: 1,
   mature: true,
   description: '关键词搜索 X 公开帖子，只收录含真实 MP4/HLS 视频流的帖子，并使用 HGhub 原生播放器',
@@ -61,16 +61,43 @@ function unwrapMcp(payload) {
   return structured || {};
 }
 
+function extractStatus(value) {
+  const text = String(value || '');
+  const patterns = [
+    /(?:https?:\\/\\/)?(?:www\\.)?(?:x|twitter)\\.com\\/(?:i\\/(?:web\\/)?)?status(?:es)?\\/(\\d{2,25})/i,
+    /(?:https?:\\/\\/)?(?:www\\.)?(?:mobile\\.)?(?:x|twitter)\\.com\\/[A-Za-z0-9_]{1,15}\\/status(?:es)?\\/(\\d{2,25})/i
+  ];
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match) return match[1] || match[2];
+  }
+  return null;
+}
+
 function extractHits(data) {
-  const rows = Array.isArray(data.results) ? data.results : [];
+  let source = data || {};
+  if (source.structuredContent && typeof source.structuredContent === 'object') source = source.structuredContent;
+  if (source.result && typeof source.result === 'object') {
+    const nested = source.result.structuredContent;
+    if (nested && typeof nested === 'object') source = nested;
+  }
+  const rows = Array.isArray(source.results) ? source.results :
+    (Array.isArray(source.data && source.data.results) ? source.data.results : []);
   const out = [];
   const seen = new Set();
   for (const row of rows) {
-    const url = String(row && row.url || '');
-    const m = url.match(/(?:x|twitter)\.com\/([A-Za-z0-9_]{1,15})\/status(?:es)?\/(\d{2,25})/i);
-    if (!m || seen.has(m[2])) continue;
-    seen.add(m[2]);
-    out.push({ id: m[2], username: m[1], title: String(row.title || ''), snippet: (row.excerpts || []).join(' ') });
+    if (!row || typeof row !== 'object') continue;
+    const excerpts = Array.isArray(row.excerpts) ? row.excerpts.join(' ') : String(row.excerpts || '');
+    const haystack = [row.url, row.title, excerpts].filter(Boolean).join(' ');
+    const id = extractStatus(haystack);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push({
+      id,
+      username: (String(row.url || '').match(/(?:x|twitter)\\.com\\/([A-Za-z0-9_]{1,15})\\/status/i) || [])[1] || '',
+      title: String(row.title || ''),
+      snippet: excerpts,
+    });
   }
   return out;
 }
